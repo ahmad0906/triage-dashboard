@@ -74,8 +74,8 @@ export default function App() {
             <Activity size={28} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Kano Maternal Health Triage</h1>
-            <p className="text-sm text-slate-500 font-medium">Powered by LightGBM Predictive Architecture</p>
+            <h1 className="text-2xl font-bold text-slate-900">ACEPHAP Maternal Health Triage</h1>
+            <p className="text-sm text-slate-500 font-medium">Pregnancy Complications in Previous Pregnancy</p>
           </div>
         </header>
 
