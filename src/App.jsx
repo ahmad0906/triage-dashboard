@@ -162,7 +162,7 @@ export default function App() {
 
                 <div className="space-y-1">
                   <label className="text-sm font-semibold text-slate-600 flex items-center gap-1">
-                    <Stethoscope size={16} className="text-slate-500"/> Place Delivered
+                    <Stethoscope size={16} className="text-slate-500"/> Place of Delivery in Previous Pregnancy
                   </label>
                   <select name="place_delivered" value={formData.place_delivered} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg outline-none bg-white">
                     <option value="" disabled>Select option...</option>
