@@ -125,8 +125,8 @@ export default function App() {
                   <select name="pregnancy_complications" value={formData.pregnancy_complications} onChange={handleInputChange} 
                     className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
                     <option value="" disabled>Select option...</option>
-                    <option value="no">No Known Complications</option>
-                    <option value="yes">Yes (E.g., Bleeding, Hypertension)</option>
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
                   </select>
                 </div>
               </div>
