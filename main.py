@@ -34,7 +34,7 @@ try:
     else:
         model = None
         MODEL_LOADED = False
-        print("⚠️ Model file not found. API will use clinical fallback logic for testing.")
+        print("⚠️ Model file not found. API cannot serve predictions.")
 except Exception as e:
     model = None
     MODEL_LOADED = False
@@ -42,6 +42,10 @@ except Exception as e:
 
 @app.post("/predict")
 async def predict_risk(patient: PatientData):
+    # 🚨 STRICT ENFORCEMENT: Fail immediately if the AI model is not available
+    if not MODEL_LOADED:
+        raise HTTPException(status_code=503, detail="AI Engine is offline. Model file not found.")
+
     try:
         # 1. Convert incoming JSON to a Pandas DataFrame
         input_data = pd.DataFrame([{
@@ -56,50 +60,23 @@ async def predict_risk(patient: PatientData):
         }])
 
         drivers = []
-        risk_score = 0.0
 
-        # 2. Run Actual ML Inference (if model exists)
-        if MODEL_LOADED:
-            # Predict probability of class 1 (Mortality)
-            probabilities = model.predict_proba(input_data)
-            risk_score = probabilities[0][1] 
-            
-            # Simulated SHAP driver mapping based on Phase 6 insights
-            if patient.pregnancy_complications == 'yes':
-                drivers.append({"factor": "Existing Complications", "impact": "Critical Risk Increase (SHAP: +1.44)"})
-            if patient.previous_pregnancies > 4:
-                drivers.append({"factor": f"High Parity ({patient.previous_pregnancies})", "impact": "High Risk Increase (SHAP: +3.83)"})
-            if patient.anc_visits == 0:
-                drivers.append({"factor": "Zero ANC Visits", "impact": "High Risk Increase (SHAP: +2.62)"})
-            if patient.place_delivered == 'enroute':
-                drivers.append({"factor": "Enroute Delivery", "impact": "Severe Acute Risk"})
+        # 2. Run Actual ML Inference
+        # Predict probability of class 1 (Mortality)
+        probabilities = model.predict_proba(input_data)
+        risk_score = probabilities[0][1] 
+        
+        # Simulated SHAP driver mapping based on Phase 6 insights
+        if patient.pregnancy_complications == 'yes':
+            drivers.append({"factor": "Existing Complications", "impact": "Critical Risk Increase (SHAP: +1.44)"})
+        if patient.previous_pregnancies > 4:
+            drivers.append({"factor": f"High Parity ({patient.previous_pregnancies})", "impact": "High Risk Increase (SHAP: +3.83)"})
+        if patient.anc_visits == 0:
+            drivers.append({"factor": "Zero ANC Visits", "impact": "High Risk Increase (SHAP: +2.62)"})
+        if patient.place_delivered == 'enroute':
+            drivers.append({"factor": "Enroute Delivery", "impact": "Severe Acute Risk"})
 
-        # 3. Clinical Fallback Math (if model is missing during testing)
-        else:
-            risk_score = 0.02 # Baseline
-            if patient.pregnancy_complications == 'yes':
-                risk_score += 0.45
-                drivers.append({"factor": "Existing Complications", "impact": "Critical Risk Increase"})
-            if patient.previous_pregnancies > 4:
-                risk_score += 0.25
-                drivers.append({"factor": f"High Parity ({patient.previous_pregnancies})", "impact": "High Risk Increase"})
-            if patient.anc_visits == 0:
-                risk_score += 0.20
-                drivers.append({"factor": "Zero ANC Visits", "impact": "High Risk Increase"})
-            elif patient.anc_visits >= 4:
-                risk_score -= 0.05
-                drivers.append({"factor": f"Adequate ANC ({patient.anc_visits})", "impact": "Protective Factor"})
-            if patient.age > 35:
-                risk_score += 0.10
-                drivers.append({"factor": f"Advanced Age ({patient.age})", "impact": "Moderate Risk Increase"})
-            if patient.place_delivered == 'enroute':
-                risk_score += 0.30
-                drivers.append({"factor": "Enroute Delivery", "impact": "Severe Acute Risk"})
-            
-            # Floor/Cap
-            risk_score = max(0.01, min(risk_score, 0.99))
-
-        # 4. Format the exact JSON response expected by React
+        # 3. Format the exact JSON response expected by React
         return {
             "probability": f"{risk_score * 100:.1f}",
             "classification": "High Mortality Risk" if risk_score >= 0.50 else "Standard Risk",
