@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Activity, AlertTriangle, CheckCircle, User, MapPin, Stethoscope, HeartPulse } from 'lucide-react';
 
 export default function App() {
-  // 1. Start with a clean, blank slate
   const [formData, setFormData] = useState({
     age: '',
     previous_pregnancies: '',
@@ -23,12 +22,10 @@ export default function App() {
       ...prev,
       [name]: ['age', 'previous_pregnancies', 'anc_visits'].includes(name) ? Number(value) : value
     }));
-    setErrorMsg(''); // Clear errors when user types
+    setErrorMsg(''); 
   };
 
-  // 2. Connect to Python Backend Inference Engine
   const calculateRisk = async () => {
-    // Basic validation to ensure no fields are left blank
     if (Object.values(formData).some(val => val === '')) {
       setErrorMsg('Please complete all patient clinical profile fields before running the assessment.');
       return;
@@ -58,7 +55,6 @@ export default function App() {
       
     } catch (error) {
       console.error("Connection error:", error);
-      // Fallback removed. Explicitly alert the user if the model fails to connect.
       setErrorMsg("Failed to connect to the AI Inference Engine. Please ensure the backend server is running.");
       setIsCalculating(false);
     }
@@ -96,28 +92,24 @@ export default function App() {
               </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Age */}
                 <div className="space-y-1">
                   <label className="text-sm font-semibold text-slate-600">Maternal Age (Years)</label>
                   <input type="number" name="age" value={formData.age} onChange={handleInputChange} min="10" max="60" placeholder="e.g. 25"
                     className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" />
                 </div>
 
-                {/* Parity */}
                 <div className="space-y-1">
                   <label className="text-sm font-semibold text-slate-600">Previous Pregnancies (Parity)</label>
                   <input type="number" name="previous_pregnancies" value={formData.previous_pregnancies} onChange={handleInputChange} min="0" max="20" placeholder="e.g. 2"
                     className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" />
                 </div>
 
-                {/* ANC */}
                 <div className="space-y-1">
                   <label className="text-sm font-semibold text-slate-600">ANC Visits</label>
                   <input type="number" name="anc_visits" value={formData.anc_visits} onChange={handleInputChange} min="0" max="15" placeholder="e.g. 4"
                     className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" />
                 </div>
 
-                {/* Complications */}
                 <div className="space-y-1">
                   <label className="text-sm font-semibold text-slate-600 flex items-center gap-1">
                     <HeartPulse size={16} className="text-red-500"/> Pregnancy Complications?
