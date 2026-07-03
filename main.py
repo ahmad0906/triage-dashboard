@@ -51,28 +51,35 @@ async def predict_risk(patient: PatientData):
         raise HTTPException(status_code=503, detail="AI Engine is offline. Model file not found.")
 
     try:
-        # 1. Map ordinal data (Education is numerical in your matrix)
+        # 1. Map ordinal data
         edu_map = {'none_or_non_formal': 0, 'arabic_ismiyya': 1, 'primary': 2, 'secondary': 3, 'tertiary': 4}
         
-        # 2. Build the Zero Matrix based EXACTLY on your 17 training columns
+        # 2. Build the Zero Matrix based EXACTLY on the 23 training columns
+        # The order here is mathematically critical. Do not change it.
         feature_dict = {
             'age': patient.age,
             'education_level': edu_map.get(patient.education_level, 0),
             'previous_pregnancies': patient.previous_pregnancies,
+            'miscarriages': 0,  # Defaulted to 0 as it is not on the triage form
+            'stillbirths': 0,   # Defaulted to 0 as it is not on the triage form
             'anc_visits': patient.anc_visits,
             'settlement_type_rural': 0,
             'settlement_type_semi-urban': 0,
             'settlement_type_urban': 0,
             'employment_status_casually_employed': 0,
             'employment_status_formally_employed': 0,
+            'employment_status_home-maker': 0,
+            'employment_status_mainly_employed': 0,
+            'employment_status_mainly_unemployed': 0,
             'employment_status_seasonally_employed': 0,
             'employment_status_self_employed': 0,
             'employment_status_unemployed': 0,
-            'place_delivered_enroute': 0,
+            'place_delivered_enroute_to_hf': 0,
             'place_delivered_hf': 0,
             'place_delivered_home': 0,
-            'pregnancy_complications_no': 0,
-            'pregnancy_complications_yes': 0
+            'place_delivered_hospital': 0,
+            'place_delivered_on_route_to_hospital_or_facility': 0,
+            'place_delivered_other_health_facility': 0
         }
 
         # 3. Flip the switch (0 to 1) for the exact categories the user selected
@@ -80,13 +87,13 @@ async def predict_risk(patient: PatientData):
         if settlement_col in feature_dict:
             feature_dict[settlement_col] = 1
 
-        place_col = f"place_delivered_{patient.place_delivered}"
-        if place_col in feature_dict:
-            feature_dict[place_col] = 1
-
-        comp_col = f"pregnancy_complications_{patient.pregnancy_complications}"
-        if comp_col in feature_dict:
-            feature_dict[comp_col] = 1
+        # Map the frontend's 'enroute' dropdown to the model's exact text requirement
+        if patient.place_delivered == 'enroute':
+            feature_dict['place_delivered_enroute_to_hf'] = 1
+        elif patient.place_delivered == 'hf':
+            feature_dict['place_delivered_hf'] = 1
+        elif patient.place_delivered == 'home':
+            feature_dict['place_delivered_home'] = 1
 
         # The frontend doesn't ask for employment status, so we default to one
         feature_dict['employment_status_formally_employed'] = 1
@@ -100,7 +107,7 @@ async def predict_risk(patient: PatientData):
         probabilities = model.predict_proba(input_data)
         risk_score = probabilities[0][1] 
         
-        # Simulated SHAP drivers
+        # Simulated SHAP drivers for the UI (using the frontend data)
         if patient.pregnancy_complications == 'yes':
             drivers.append({"factor": "Existing Complications", "impact": "Critical Risk Increase (SHAP: +1.44)"})
         if patient.previous_pregnancies > 4:
@@ -110,7 +117,7 @@ async def predict_risk(patient: PatientData):
         if patient.place_delivered == 'enroute':
             drivers.append({"factor": "Enroute Delivery", "impact": "Severe Acute Risk"})
 
-        # 6. Format the response
+        # 6. Format the response for React
         return {
             "probability": f"{risk_score * 100:.1f}",
             "classification": "High Mortality Risk" if risk_score >= 0.50 else "Standard Risk",
