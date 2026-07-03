@@ -7,12 +7,12 @@ import os
 
 app = FastAPI(title="Kano Maternal Triage API")
 
-# Allow the React frontend to communicate with this Python backend
+# Allow the React frontend to communicate with this Python backend from ANY internet location
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins for local testing
+    allow_origins=["*"],  
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods (POST, GET, etc.)
+    allow_methods=["*"],  
     allow_headers=["*"],
 )
 
@@ -40,9 +40,13 @@ except Exception as e:
     MODEL_LOADED = False
     print(f"⚠️ Error loading model: {e}")
 
+# 🚨 PRACTICAL FIX: Cloud servers ping the root URL to see if the app is alive. 
+@app.get("/")
+def health_check():
+    return {"status": "online", "model_loaded": MODEL_LOADED, "message": "ACEPHAP Triage Engine is running."}
+
 @app.post("/predict")
 async def predict_risk(patient: PatientData):
-    # 🚨 STRICT ENFORCEMENT: Fail immediately if the AI model is not available
     if not MODEL_LOADED:
         raise HTTPException(status_code=503, detail="AI Engine is offline. Model file not found.")
 
@@ -62,7 +66,6 @@ async def predict_risk(patient: PatientData):
         drivers = []
 
         # 2. Run Actual ML Inference
-        # Predict probability of class 1 (Mortality)
         probabilities = model.predict_proba(input_data)
         risk_score = probabilities[0][1] 
         
