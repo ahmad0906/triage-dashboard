@@ -51,21 +51,27 @@ async def predict_risk(patient: PatientData):
         raise HTTPException(status_code=503, detail="AI Engine is offline. Model file not found.")
 
     try:
-        # 1. Convert incoming JSON to a Pandas DataFrame
+        # 1. Map text data from the frontend into the exact numeric values the AI was trained on
+        comp_map = {'no': 0, 'yes': 1}
+        edu_map = {'none_or_non_formal': 0, 'arabic_ismiyya': 1, 'primary': 2, 'secondary': 3, 'tertiary': 4}
+        sett_map = {'rural': 0, 'semi-urban': 1, 'urban': 2}
+        place_map = {'hf': 0, 'home': 1, 'enroute': 2}
+        
+        # 2. Convert incoming JSON to a purely numeric Pandas DataFrame
         input_data = pd.DataFrame([{
             'age': patient.age,
             'previous_pregnancies': patient.previous_pregnancies,
             'anc_visits': patient.anc_visits,
-            'pregnancy_complications': patient.pregnancy_complications,
-            'education_level': patient.education_level,
-            'settlement_type': patient.settlement_type,
-            'place_delivered': patient.place_delivered,
-            'employment_status': 'formally_employed' # Defaulted to match 8-feature ML matrix
+            'pregnancy_complications': comp_map.get(patient.pregnancy_complications, 0),
+            'education_level': edu_map.get(patient.education_level, 0),
+            'settlement_type': sett_map.get(patient.settlement_type, 0),
+            'place_delivered': place_map.get(patient.place_delivered, 0),
+            'employment_status': 0 # Defaulted to match 8-feature ML matrix (0 = formally_employed)
         }])
 
         drivers = []
 
-        # 2. Run Actual ML Inference
+        # 3. Run Actual ML Inference
         probabilities = model.predict_proba(input_data)
         risk_score = probabilities[0][1] 
         
@@ -79,7 +85,7 @@ async def predict_risk(patient: PatientData):
         if patient.place_delivered == 'enroute':
             drivers.append({"factor": "Enroute Delivery", "impact": "Severe Acute Risk"})
 
-        # 3. Format the exact JSON response expected by React
+        # 4. Format the exact JSON response expected by React
         return {
             "probability": f"{risk_score * 100:.1f}",
             "classification": "High Mortality Risk" if risk_score >= 0.50 else "Standard Risk",
