@@ -36,13 +36,7 @@ export default function App() {
     try {
       // PRACTICAL FIX: Automatically detect if we are live on Vercel or testing locally
       // This completely bypasses Vercel's environment variable bugs.
-      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const FALLBACK_URL = isLocal 
-        ? 'http://127.0.0.1:8000/predict' 
-        : 'https://triage-dashboard-9xap.onrender.com/predict';
-        
-      const API_URL = import.meta.env.VITE_API_URL || FALLBACK_URL;
-      
+      const API_URL = 'https://triage-dashboard-9xap.onrender.com/predict';      
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
