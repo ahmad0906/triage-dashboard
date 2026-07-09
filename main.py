@@ -105,7 +105,7 @@ async def predict_risk(patient: PatientData):
 
         # 5. Run Actual ML Inference
         probabilities = model.predict_proba(input_data)
-        risk_score = probabilities[0][1] 
+        risk_score = probabilities[0][0] 
         
         # Simulated SHAP drivers for the UI (using the frontend data)
         if patient.pregnancy_complications == 'yes':
